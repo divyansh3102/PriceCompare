@@ -4,7 +4,7 @@ const ProductApproval = () => {
   const [products, setProducts] = useState([]);
 
   const fetchProducts = async () => {
-    const res = await fetch("http://localhost:5000/api/products/all");
+    const res = await fetch("https://pricecompare-1-lrr8.onrender.com/api/products/all");
     const data = await res.json();
     setProducts(data.products || []);
   };
@@ -14,14 +14,14 @@ const ProductApproval = () => {
   }, []);
 
   const approve = async (id) => {
-    await fetch(`http://localhost:5000/api/products/approve/${id}`, {
+    await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/approve/${id}`, {
       method: "PUT"
     });
     fetchProducts();
   };
 
   const reject = async (id) => {
-    await fetch(`http://localhost:5000/api/products/reject/${id}`, {
+    await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/reject/${id}`, {
       method: "PUT"
     });
     fetchProducts();

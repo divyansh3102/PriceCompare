@@ -13,7 +13,7 @@ const Ads = () => {
   const fetchAds = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/products/all');
+      const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products/all');
       const data = await response.json();
       if (data.success) setAds(data.products);
     } catch (error) {
@@ -35,7 +35,7 @@ const Ads = () => {
       header: true, skipEmptyLines: true,
       complete: async (results) => {
         try {
-          const response = await fetch('http://localhost:5000/api/products/bulk', {
+          const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products/bulk', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               products: results.data,
@@ -57,7 +57,7 @@ const Ads = () => {
 
   const handleCategoryChange = async (id, newCategory) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/products/category/${id}`, { 
+      const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/category/${id}`, { 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category: newCategory }) 
@@ -70,7 +70,7 @@ const Ads = () => {
   const handleToggleStock = async (id, currentStock) => {
     const isCurrentlyInStock = currentStock === undefined ? true : Boolean(currentStock);
     try {
-      const res = await fetch(`http://localhost:5000/api/products/stock/${id}`, { 
+      const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/stock/${id}`, { 
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inStock: !isCurrentlyInStock }) 
       });
@@ -80,18 +80,18 @@ const Ads = () => {
   };
 
   const handleApprove = async (id) => {
-    const res = await fetch(`http://localhost:5000/api/products/approve/${id}`, { method: 'PUT' });
+    const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/approve/${id}`, { method: 'PUT' });
     if ((await res.json()).success) fetchAds();
   };
 
   const handleReject = async (id) => {
-    const res = await fetch(`http://localhost:5000/api/products/reject/${id}`, { method: 'PUT' });
+    const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/reject/${id}`, { method: 'PUT' });
     if ((await res.json()).success) fetchAds();
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this product?")) return;
-    const res = await fetch(`http://localhost:5000/api/products/${id}`, { method: 'DELETE' });
+    const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/${id}`, { method: 'DELETE' });
     if ((await res.json()).success) fetchAds();
   };
 

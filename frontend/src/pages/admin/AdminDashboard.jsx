@@ -5,7 +5,7 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/admin/stats");
+      const res = await fetch("https://pricecompare-1-lrr8.onrender.com/api/admin/stats");
       const data = await res.json();
       setStats(data.stats || {});
     } catch (err) {

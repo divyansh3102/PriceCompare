@@ -10,7 +10,7 @@ const ProductCard = ({ product, index = 0 }) => {
   // ✅ NEW: Silent background function to track Views and Leads!
   const trackAction = async (type) => {
     try {
-      await fetch(`http://localhost:5000/api/products/${product.id}/${type}`, {
+      await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/${product.id}/${type}`, {
         method: 'POST'
       });
     } catch (error) {
