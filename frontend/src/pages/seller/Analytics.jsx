@@ -8,7 +8,7 @@ const Analytics = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/seller/analytics');
+        const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/seller/analytics');
         const json = await response.json();
         if (json.success) setData(json.data);
       } catch (error) {

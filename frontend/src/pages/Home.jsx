@@ -15,7 +15,7 @@ const Home = () => {
   useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/products');
+        const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products');
         const data = await response.json();
         if (data.success) {
           setFeaturedProducts(data.products.slice(0, 4));

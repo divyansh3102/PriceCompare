@@ -57,7 +57,7 @@ const Cart = () => {
   const verifyLocation = async () => {
     if (!pincode || pincode.length !== 6) return alert("Please enter a valid 6-digit Pincode.");
     try {
-      const res = await fetch('http://localhost:5000/api/checkout/validate-cod', {
+      const res = await fetch('https://pricecompare-1-lrr8.onrender.com/api/checkout/validate-cod', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pincode })
       });
       const data = await res.json();
@@ -85,7 +85,7 @@ const Cart = () => {
 
     try {
       if (deliveryMethod === 'Pickup' || paymentMethod === 'COD') {
-        const res = await fetch('http://localhost:5000/api/orders/checkout', {
+        const res = await fetch('https://pricecompare-1-lrr8.onrender.com/api/orders/checkout', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData)
         });
         const data = await res.json();
@@ -99,7 +99,7 @@ const Cart = () => {
         const res = await loadRazorpay();
         if (!res) return alert("Razorpay SDK failed to load.");
 
-        const initRes = await fetch('http://localhost:5000/api/checkout/create-payment', {
+        const initRes = await fetch('https://pricecompare-1-lrr8.onrender.com/api/checkout/create-payment', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData)
         });
         const paymentData = await initRes.json();
@@ -114,7 +114,7 @@ const Cart = () => {
           description: "Secure Order Payment",
           order_id: paymentData.orderId,
           handler: async function (response) {
-            const verifyRes = await fetch('http://localhost:5000/api/checkout/verify-payment', {
+            const verifyRes = await fetch('https://pricecompare-1-lrr8.onrender.com/api/checkout/verify-payment', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,

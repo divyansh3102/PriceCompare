@@ -7,7 +7,7 @@ const Compare = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
+    fetch("https://pricecompare-1-lrr8.onrender.com/api/products")
       .then(res => res.json())
       .then(data => setLocal(data.success ? data.products : []))
       .catch(err => console.error("Local fetch failed", err));

@@ -22,7 +22,7 @@ const Products = () => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:5000/api/products');
+        const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products');
         const data = await response.json();
         
         if (data.success) {

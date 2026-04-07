@@ -24,7 +24,7 @@ const MyAds = () => {
   const fetchAds = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/products/all');
+      const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products/all');
       const data = await response.json();
       
       if (data.success && Array.isArray(data.products)) {
@@ -53,7 +53,7 @@ const MyAds = () => {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          const response = await fetch('http://localhost:5000/api/products/bulk', {
+          const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/products/bulk', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             // 🔥 This is the magic! We force the status to 'pending' for seller uploads
@@ -90,7 +90,7 @@ const MyAds = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to permanently delete this listing?')) {
       try {
-        const res = await fetch(`http://localhost:5000/api/products/${id}`, { method: 'DELETE' });
+        const res = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/products/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.success) fetchAds();
       } catch (error) {

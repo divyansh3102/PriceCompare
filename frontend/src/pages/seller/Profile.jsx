@@ -14,7 +14,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/seller/profile/${userEmail}`);
+        const response = await fetch(`https://pricecompare-1-lrr8.onrender.com/api/seller/profile/${userEmail}`);
         const data = await response.json();
         if (data.success) {
           setProfile(data.profile);
@@ -36,7 +36,7 @@ const Profile = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/seller/profile/request', {
+      const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/seller/profile/request', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, requestedChanges: formData })

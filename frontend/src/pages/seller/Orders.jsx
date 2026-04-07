@@ -17,7 +17,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/seller/orders');
+      const response = await fetch('https://pricecompare-1-lrr8.onrender.com/api/seller/orders');
       const data = await response.json();
       if (data.success) {
         setOrders(data.orders);
@@ -49,7 +49,7 @@ const Orders = () => {
       // Optimistic UI update for instant feedback
       setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       
-      await fetch(`http://localhost:5000/api/seller/orders/${orderId}/status`, {
+      await fetch(`https://pricecompare-1-lrr8.onrender.com/api/seller/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
