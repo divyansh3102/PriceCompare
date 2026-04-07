@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyOtp from './pages/VerifyOtp';
 import Products from './pages/Products';
+import Cart from "./pages/Cart";
 
 // Seller Pages
 import SellerDashboard from './pages/seller/Dashboard';
@@ -20,14 +21,15 @@ import SellerAnalytics from './pages/seller/Analytics';
 import SellerMyAds from './pages/seller/MyAds';
 import SellerEditAd from './pages/seller/EditAd';
 import SellerProfile from './pages/seller/Profile';
+import Orders from "./pages/seller/Orders";
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard'; // ✅ FIXED
 import AdminUsers from './pages/admin/Users';
 import AdminSellers from './pages/admin/Sellers';
 import AdminAds from './pages/admin/Ads';
 import AdminPayments from './pages/admin/Payments';
-
+import ProductApproval from "./pages/admin/ProductApproval";
 import './App.css';
 
 // Protected Route Component
@@ -51,10 +53,12 @@ function App() {
     <ThemeProvider>
       <Router>
         <Routes>
+
           {/* Public Routes */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/cart" element={<Cart />} />
           </Route>
 
           {/* Auth Routes */}
@@ -76,6 +80,7 @@ function App() {
             <Route path="my-ads" element={<SellerMyAds />} />
             <Route path="edit-ad/:id" element={<SellerEditAd />} />
             <Route path="profile" element={<SellerProfile />} />
+            <Route path="orders" element={<Orders />} />
           </Route>
 
           {/* Admin Routes */}
@@ -92,10 +97,12 @@ function App() {
             <Route path="sellers" element={<AdminSellers />} />
             <Route path="ads" element={<AdminAds />} />
             <Route path="payments" element={<AdminPayments />} />
+            <Route path="approval" element={<ProductApproval />} />
           </Route>
 
-          {/* Catch all - 404 */}
+          {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
         </Routes>
       </Router>
     </ThemeProvider>

@@ -1,308 +1,185 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  Search, 
-  Filter, 
-  MapPin, 
-  SlidersHorizontal,
-  X,
-  ChevronDown
-} from 'lucide-react';
+import { Search, MapPin, Filter, X, Globe, Store } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-import { demoProducts, electronicsCategories, cities } from '../data/electronicsCategories';
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  const [allProducts, setAllProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const currentMode = searchParams.get('mode') || 'local';
+  
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [priceRange, setPriceRange] = useState([0, 500000]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filteredProducts, setFilteredProducts] = useState(demoProducts);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'All');
+  const [selectedCity, setSelectedCity] = useState(searchParams.get('city') || 'All');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Apply filters
+  // 1. Fetch Proprietary Products Database
   useEffect(() => {
-    let filtered = [...demoProducts];
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('http://localhost:5000/api/products');
+        const data = await response.json();
+        
+        if (data.success) {
+          // 🚀 MAGIC SEPARATOR: Read the Discriminator from the DB
+          const processedProducts = data.products.map(p => ({
+            ...p,
+            isOnline: p.shopName === 'Admin Online', // True if Admin uploaded via CSV
+            city: p.shopName === 'Admin Online' ? 'Nationwide Delivery' : (p.city || 'Local')
+          }));
+          setAllProducts(processedProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
-    // Search filter
+  // 2. Extract Categories & Cities dynamically (respecting the current mode!)
+  const visibleProducts = allProducts.filter(p => currentMode === 'online' ? p.isOnline : !p.isOnline);
+  const uniqueCategories = ['All', ...new Set(visibleProducts.map(p => p.category).filter(Boolean))];
+  const uniqueCities = ['All', ...new Set(visibleProducts.map(p => p.city).filter(Boolean))];
+
+  // 3. Apply Filters
+  useEffect(() => {
+    let result = [...allProducts];
+
+    // A. Filter by Mode Toggle (Local vs Online)
+    if (currentMode === 'online') {
+      result = result.filter(p => p.isOnline === true);
+    } else {
+      result = result.filter(p => p.isOnline === false);
+    }
+
+    // B. Text Search
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(query) ||
-        product.shopName.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
+      const q = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) || 
+        (p.shopName && p.shopName.toLowerCase().includes(q))
       );
     }
 
-    // Category filter
-    if (selectedCategory) {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    // C. Category
+    if (selectedCategory !== 'All') {
+      result = result.filter(p => p.category === selectedCategory);
     }
 
-    // City filter
-    if (selectedCity !== 'all') {
-      filtered = filtered.filter(product => product.city === selectedCity);
+    // D. City
+    if (selectedCity !== 'All') {
+      result = result.filter(p => p.city === selectedCity);
     }
 
-    // Price filter
-    filtered = filtered.filter(product => 
-      product.price >= priceRange[0] && product.price <= priceRange[1]
-    );
+    setFilteredProducts(result);
+  }, [searchQuery, selectedCategory, selectedCity, allProducts, currentMode]);
 
-    setFilteredProducts(filtered);
-  }, [searchQuery, selectedCategory, selectedCity, priceRange]);
-
-  const handleSearch = (e) => {
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams);
     if (searchQuery) params.set('search', searchQuery);
-    if (selectedCategory) params.set('category', selectedCategory);
+    if (selectedCategory !== 'All') params.set('category', selectedCategory);
+    if (selectedCity !== 'All') params.set('city', selectedCity);
     setSearchParams(params);
   };
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedCategory('');
-    setSelectedCity('all');
-    setPriceRange([0, 500000]);
-    setSearchParams(new URLSearchParams());
+    setSelectedCategory('All');
+    setSelectedCity('All');
+    const params = new URLSearchParams();
+    params.set('mode', currentMode); // Preserve the mode
+    setSearchParams(params);
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory || selectedCity !== 'all' || priceRange[1] < 500000;
-
   return (
-    <div className="min-h-screen gradient-bg py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-            Browse <span className="gradient-text">Products</span>
-          </h1>
-          <p className="text-white/50">
-            Find the best deals on electronics from local sellers
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-[#0a0f1c] pt-20 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+        
+        <button onClick={() => setShowMobileFilters(!showMobileFilters)} className="md:hidden flex items-center justify-center space-x-2 bg-[#151b2b] border border-gray-800 text-white p-3 rounded-xl">
+          <Filter className="w-5 h-5" /> <span>{showMobileFilters ? 'Hide Filters' : 'Show Filters'}</span>
+        </button>
 
-        {/* Search and Filter Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products, shops, categories..."
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                />
-              </div>
+        <div className={`${showMobileFilters ? 'block' : 'hidden'} md:block w-full md:w-64 flex-shrink-0 space-y-6`}>
+          <div className="bg-[#151b2b] border border-gray-800 rounded-xl p-5">
+            <h3 className="text-white font-bold mb-4 flex items-center"><Search className="w-4 h-4 mr-2 text-pink-500"/> Search</h3>
+            <form onSubmit={handleSearchSubmit}>
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Product name..." className="w-full bg-[#0a0f1c] border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-pink-500 text-sm" />
             </form>
+          </div>
 
-            {/* Filter Toggle - Mobile */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden px-4 py-3 rounded-xl glass flex items-center justify-center space-x-2 text-white/80"
-            >
-              <Filter className="w-5 h-5" />
-              <span>Filters</span>
-              {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-pink-500" />
-              )}
-            </button>
-
-            {/* Desktop Filters */}
-            <div className="hidden lg:flex items-center space-x-3">
-              {/* Category Dropdown */}
-              <div className="relative">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="appearance-none px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500/50 cursor-pointer min-w-[150px]"
-                >
-                  <option value="" className="bg-[#0b0e1a]">All Categories</option>
-                  {electronicsCategories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="bg-[#0b0e1a]">
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-              </div>
-
-              {/* City Dropdown */}
-              <div className="relative">
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="appearance-none px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500/50 cursor-pointer min-w-[150px]"
-                >
-                  {cities.map(city => (
-                    <option key={city.id} value={city.id} className="bg-[#0b0e1a]">
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
-              </div>
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="px-4 py-3 rounded-xl glass text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center space-x-2"
-                >
-                  <X className="w-4 h-4" />
-                  <span>Clear</span>
-                </button>
-              )}
+          <div className="bg-[#151b2b] border border-gray-800 rounded-xl p-5">
+            <h3 className="text-white font-bold mb-4">Categories</h3>
+            <div className="flex flex-col space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+              {uniqueCategories.map(category => (
+                <label key={category} className="flex items-center space-x-3 cursor-pointer group">
+                  <input type="radio" name="category" checked={selectedCategory === category} onChange={() => setSelectedCategory(category)} className="form-radio text-pink-500 focus:ring-pink-500 bg-[#0a0f1c] border-gray-700" />
+                  <span className={`text-sm ${selectedCategory === category ? 'text-pink-400 font-medium' : 'text-gray-400 group-hover:text-white'}`}>{category}</span>
+                </label>
+              ))}
             </div>
           </div>
-        </motion.div>
 
-        {/* Mobile Filters */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden mb-6 p-4 glass-card"
-          >
-            <div className="space-y-4">
-              {/* Category */}
-              <div>
-                <label className="block text-white/70 text-sm mb-2">Category</label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500/50"
-                >
-                  <option value="" className="bg-[#0b0e1a]">All Categories</option>
-                  {electronicsCategories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="bg-[#0b0e1a]">
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-white/70 text-sm mb-2">City</label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-purple-500/50"
-                >
-                  {cities.map(city => (
-                    <option key={city.id} value={city.id} className="bg-[#0b0e1a]">
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <label className="block text-white/70 text-sm mb-2">
-                  Max Price: ₹{priceRange[1].toLocaleString()}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="500000"
-                  step="10000"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="w-full px-4 py-3 rounded-xl glass text-white/60 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <X className="w-4 h-4" />
-                  <span>Clear All Filters</span>
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Results Count */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center justify-between mb-6"
-        >
-          <p className="text-white/60">
-            Showing <span className="text-white font-medium">{filteredProducts.length}</span> products
-          </p>
-          
-          {/* Active Filters */}
-          {hasActiveFilters && (
-            <div className="flex items-center space-x-2 flex-wrap gap-2">
-              {selectedCategory && (
-                <span className="px-3 py-1 rounded-full bg-pink-500/20 text-pink-400 text-sm flex items-center space-x-2">
-                  <span>{electronicsCategories.find(c => c.id === selectedCategory)?.name}</span>
-                  <button onClick={() => setSelectedCategory('')}>
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {selectedCity !== 'all' && (
-                <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-sm flex items-center space-x-2">
-                  <span>{cities.find(c => c.id === selectedCity)?.name}</span>
-                  <button onClick={() => setSelectedCity('all')}>
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
+          {currentMode === 'local' && (
+            <div className="bg-[#151b2b] border border-gray-800 rounded-xl p-5">
+              <h3 className="text-white font-bold mb-4 flex items-center"><MapPin className="w-4 h-4 mr-2 text-pink-500"/> Location</h3>
+              <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="w-full bg-[#0a0f1c] border border-gray-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-pink-500 text-sm">
+                {uniqueCities.map(city => (<option key={city} value={city}>{city}</option>))}
+              </select>
             </div>
           )}
-        </motion.div>
 
-        {/* Products Grid */}
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20"
-          >
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-10 h-10 text-white/30" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No products found</h3>
-            <p className="text-white/50 mb-6">Try adjusting your filters or search query</p>
-            <button
-              onClick={clearFilters}
-              className="px-6 py-3 rounded-xl btn-gradient"
-            >
-              Clear Filters
+          {(searchQuery || selectedCategory !== 'All' || selectedCity !== 'All') && (
+            <button onClick={clearFilters} className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm flex items-center justify-center transition-colors">
+              <X className="w-4 h-4 mr-1" /> Clear All Filters
             </button>
-          </motion.div>
-        )}
+          )}
+        </div>
+
+        <div className="flex-1">
+          <div className={`mb-6 flex justify-between items-center p-4 rounded-xl border border-gray-800 ${currentMode === 'online' ? 'bg-pink-900/20 border-pink-500/30' : 'bg-[#151b2b]'}`}>
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center">
+                {currentMode === 'online' ? <Globe className="w-6 h-6 mr-2 text-pink-500"/> : <Store className="w-6 h-6 mr-2 text-blue-400"/>}
+                {currentMode === 'online' ? 'Online Catalog' : 'Local Stores'}
+              </h1>
+              <span className="text-gray-400 text-sm mt-1 block">
+                {currentMode === 'online' ? 'Shipped nationwide' : 'Available for immediate store pickup'}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-bold text-white">{filteredProducts.length}</span>
+              <span className="text-gray-400 text-sm block">Products</span>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-gray-700 border-t-pink-500 rounded-full animate-spin" /></div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-[#151b2b] rounded-2xl border border-gray-800">
+              <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">No {currentMode} products found</h3>
+              <p className="text-gray-400 mb-6">Try removing some filters or checking the other catalog.</p>
+              <button onClick={clearFilters} className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors">
+                Clear Filters
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

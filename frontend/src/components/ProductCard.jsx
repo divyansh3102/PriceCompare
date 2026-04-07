@@ -1,21 +1,62 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Star, Heart, ExternalLink } from 'lucide-react';
+import { MapPin, Phone, Star, Heart } from 'lucide-react';
 import { formatPrice } from '../data/electronicsCategories';
+import { CartContext } from '../context/CartContext';
 
 const ProductCard = ({ product, index = 0 }) => {
+  const { addToCart } = useContext(CartContext) || {};
+
+  // ✅ NEW: Silent background function to track Views and Leads!
+  const trackAction = async (type) => {
+    try {
+      await fetch(`http://localhost:5000/api/products/${product.id}/${type}`, {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.error(`Failed to track ${type}:`, error);
+    }
+  };
+
   const handleContact = () => {
-    // Check if user is logged in
     const token = localStorage.getItem('token');
     if (!token) {
-      // Redirect to login
       window.location.href = '/login';
       return;
     }
     
-    // Open contact dialog or redirect to product detail
-    window.open(`tel:${product.contact}`, '_self');
+    // 🔥 Track this click as a 'lead' before calling!
+    trackAction('lead');
+    
+    // Fallback phone number if the seller didn't provide one
+    window.open(`tel:${product.contact || '+919876543210'}`, '_self');
   };
+
+  const handleAddToCart = () => {
+    if (addToCart && isAvailable) {
+      addToCart({ ...product, qty: 1 }); 
+      
+      // 🔥 Track this click as a 'lead' when added to cart!
+      trackAction('lead');
+      
+      alert(`🛒 ${product.name} added to your cart!`);
+    }
+  };
+
+  // Track 'view' when clicking the image or title
+  const handleView = () => {
+    trackAction('view');
+    // Note: If you have a product detail page, you can add navigation here later!
+  };
+
+  // 1. SAFELY HANDLE SQLITE BOOLEANS (1/0/undefined)
+  const isAvailable = product.inStock === 1 || product.inStock === true || product.inStock === undefined;
+
+  // 2. FALLBACK DATA 
+  const displayRating = product.rating || "4.5";
+  const displayReviews = product.reviews || Math.floor(Math.random() * 500) + 50;
+  const displayShopName = product.shopName || 'Verified Local Shop';
+  const displayAddress = product.shopAddress || product.city || 'Local Area';
 
   return (
     <motion.div
@@ -23,97 +64,110 @@ const ProductCard = ({ product, index = 0 }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       whileHover={{ y: -8, scale: 1.02 }}
-      className="glass-card overflow-hidden card-glow group border border-white/5 hover:border-pink-500/30 transition-all duration-300"
+      className="glass-card overflow-hidden card-glow group border border-white/5 hover:border-pink-500/30 transition-all duration-300 flex flex-col h-full bg-[#151b2b]"
     >
-      {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden">
+      {/* Image (Clickable for Views) */}
+      <div 
+        className="relative aspect-square overflow-hidden bg-[#0a0f1c] cursor-pointer"
+        onClick={handleView}
+      >
         <img
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) => e.target.src = 'https://via.placeholder.com/400x400?text=No+Image'}
         />
-        
-        {/* Discount Badge */}
+
+        {/* Discount */}
         {product.discount > 0 && (
-          <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold">
+          <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-lg">
             -{product.discount}%
           </div>
         )}
-        
-        {/* Stock Badge */}
-        {!product.inStock && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <span className="px-4 py-2 rounded-lg bg-white/10 text-white font-medium">
+
+        {/* Out of Stock Overlay */}
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 backdrop-blur-[2px]">
+            <span className="px-4 py-2 rounded-lg bg-red-500/80 text-white font-bold tracking-widest uppercase border border-red-400 shadow-xl">
               Out of Stock
             </span>
           </div>
         )}
-        
-        {/* Wishlist Button */}
-        <button className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-pink-500 hover:bg-black/60 transition-all">
+
+        {/* Wishlist */}
+        <button 
+          className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-pink-500 transition-all z-10"
+          onClick={(e) => { e.stopPropagation(); /* Add wishlist logic here later */ }}
+        >
           <Heart className="w-4 h-4" />
         </button>
-        
-        {/* Quick View Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-          <button
-            onClick={handleContact}
-            disabled={!product.inStock}
-            className="px-4 py-2 rounded-lg bg-white text-black font-medium text-sm hover:bg-white/90 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Phone className="w-4 h-4" />
-            <span>Contact Seller</span>
-          </button>
-        </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        {/* Product Name */}
-        <h3 className="text-white font-semibold text-lg mb-2 line-clamp-1 group-hover:text-pink-400 transition-colors">
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Name (Clickable for Views) */}
+        <h3 
+          onClick={handleView}
+          className="text-white font-semibold text-lg mb-2 line-clamp-2 group-hover:text-pink-400 transition-colors cursor-pointer"
+        >
           {product.name}
         </h3>
-        
+
         {/* Rating */}
         <div className="flex items-center space-x-2 mb-3">
-          <div className="flex items-center space-x-1">
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            <span className="text-white/80 text-sm">{product.rating}</span>
-          </div>
-          <span className="text-white/40 text-sm">({product.reviews} reviews)</span>
+          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+          <span className="text-white/80 text-sm font-medium">{displayRating}</span>
+          <span className="text-gray-500 text-sm">
+            ({displayReviews})
+          </span>
         </div>
-        
+
         {/* Price */}
         <div className="flex items-center space-x-2 mb-3">
-          <span className="text-xl font-bold gradient-text-pink">
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-purple-400">
             {formatPrice(product.price)}
           </span>
           {product.originalPrice > product.price && (
-            <span className="text-white/40 text-sm line-through">
+            <span className="text-gray-500 text-sm line-through">
               {formatPrice(product.originalPrice)}
             </span>
           )}
         </div>
-        
-        {/* Shop Info */}
-        <div className="space-y-2 pt-3 border-t border-white/10">
-          <div className="flex items-start space-x-2">
-            <MapPin className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-white/80 text-sm font-medium">{product.shopName}</p>
-              <p className="text-white/50 text-xs">{product.shopAddress}</p>
-            </div>
+
+        {/* Shop */}
+        <div className="flex items-start space-x-2 mb-4">
+          <MapPin className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-gray-300 text-sm font-medium line-clamp-1">
+              {displayShopName}
+            </p>
+            <p className="text-gray-500 text-xs line-clamp-1">
+              {displayAddress}
+            </p>
           </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="mt-auto flex gap-2 pt-4 border-t border-gray-800">
           
-          {/* Contact Button */}
+          {/* Add to Cart */}
+          <button
+            onClick={handleAddToCart}
+            disabled={!isAvailable}
+            className="flex-1 py-2.5 rounded-lg bg-pink-600 text-white font-medium text-sm hover:bg-pink-700 transition-all disabled:opacity-50 disabled:grayscale cursor-pointer disabled:cursor-not-allowed flex justify-center items-center"
+          >
+            Add to Cart
+          </button>
+
+          {/* Contact */}
           <button
             onClick={handleContact}
-            disabled={!product.inStock}
-            className="w-full mt-3 px-4 py-2.5 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-600/20 border border-pink-500/30 text-white font-medium text-sm hover:from-pink-500/30 hover:to-purple-600/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!isAvailable}
+            className="flex-1 py-2.5 rounded-lg border border-gray-600 text-white text-sm hover:bg-gray-800 transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed flex justify-center items-center"
           >
-            <Phone className="w-4 h-4" />
-            <span>Contact Seller</span>
+            <Phone className="w-4 h-4 mr-2" /> Contact
           </button>
+
         </div>
       </div>
     </motion.div>

@@ -1,257 +1,101 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area
-} from 'recharts';
-import { TrendingUp, Users, Eye, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, Users, Eye, DollarSign, Activity, Target } from 'lucide-react';
 
 const Analytics = () => {
-  // Demo data for charts
-  const viewsData = [
-    { name: 'Mon', views: 400, leads: 24 },
-    { name: 'Tue', views: 300, leads: 18 },
-    { name: 'Wed', views: 550, leads: 32 },
-    { name: 'Thu', views: 450, leads: 27 },
-    { name: 'Fri', views: 600, leads: 38 },
-    { name: 'Sat', views: 800, leads: 48 },
-    { name: 'Sun', views: 700, leads: 42 },
-  ];
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const categoryData = [
-    { name: 'Mobiles', value: 35, color: '#ec4899' },
-    { name: 'Laptops', value: 25, color: '#a855f7' },
-    { name: 'Audio', value: 20, color: '#06b6d4' },
-    { name: 'Gaming', value: 15, color: '#22c55e' },
-    { name: 'Others', value: 5, color: '#f59e0b' },
-  ];
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/seller/analytics');
+        const json = await response.json();
+        if (json.success) setData(json.data);
+      } catch (error) {
+        console.error("Failed to load analytics");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
 
-  const monthlyData = [
-    { name: 'Jan', sales: 65 },
-    { name: 'Feb', sales: 78 },
-    { name: 'Mar', sales: 90 },
-    { name: 'Apr', sales: 81 },
-    { name: 'May', sales: 96 },
-    { name: 'Jun', sales: 105 },
-  ];
-
-  const stats = [
-    { title: 'Total Views', value: '12.5K', change: '+23%', icon: Eye },
-    { title: 'Total Leads', value: '486', change: '+15%', icon: Phone },
-    { title: 'Conversion Rate', value: '3.9%', change: '+0.5%', icon: TrendingUp },
-    { title: 'Unique Visitors', value: '8.2K', change: '+18%', icon: Users },
-  ];
+  if (isLoading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-gray-700 border-t-purple-500 rounded-full animate-spin"/></div>;
+  if (!data) return <div className="text-white">Error loading analytics.</div>;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Analytics</h1>
-        <p className="text-white/50 mt-1">Track your performance and understand your customers.</p>
+        <h1 className="text-3xl font-bold text-white flex items-center"><Activity className="w-8 h-8 mr-3 text-cyan-500" /> Live Analytics</h1>
+        <p className="text-gray-400 mt-1">Real-time performance metrics for your inventory.</p>
       </div>
 
-      {/* Stats Grid */}
+      {/* KPI GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-pink-500/20 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-pink-500" />
-                </div>
-                <span className="text-green-400 text-sm font-medium">{stat.change}</span>
-              </div>
-              <p className="text-white/60 text-sm">{stat.title}</p>
-              <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Views & Leads Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-6"
-        >
-          <h2 className="text-lg font-semibold text-white mb-6">Views & Leads (Last 7 Days)</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={viewsData}>
-                <defs>
-                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
-                <YAxis stroke="rgba(255,255,255,0.5)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0b0e1a', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="views" 
-                  stroke="#ec4899" 
-                  fillOpacity={1} 
-                  fill="url(#colorViews)" 
-                  name="Views"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="leads" 
-                  stroke="#a855f7" 
-                  fillOpacity={1} 
-                  fill="url(#colorLeads)" 
-                  name="Leads"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+        <div className="bg-[#151b2b] border border-gray-800 p-6 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-400 font-medium text-sm">Total Views</h3>
+            <div className="p-2 bg-blue-500/10 rounded-lg"><Eye className="w-5 h-5 text-blue-500" /></div>
           </div>
-        </motion.div>
-
-        {/* Category Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-6"
-        >
-          <h2 className="text-lg font-semibold text-white mb-6">Sales by Category</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0b0e1a', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
-            {categoryData.map((item, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="text-white/60 text-sm">{item.name} ({item.value}%)</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Monthly Sales */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="lg:col-span-2 glass-card p-6"
-        >
-          <h2 className="text-lg font-semibold text-white mb-6">Monthly Sales Performance</h2>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
-                <YAxis stroke="rgba(255,255,255,0.5)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#0b0e1a', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Bar 
-                  dataKey="sales" 
-                  fill="url(#salesGradient)" 
-                  radius={[8, 8, 0, 0]}
-                />
-                <defs>
-                  <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ec4899" />
-                    <stop offset="100%" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Performance Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="glass-card p-6"
-      >
-        <h2 className="text-lg font-semibold text-white mb-4">Performance Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-4 rounded-xl bg-white/5">
-            <p className="text-white/60 text-sm mb-2">Best Performing Day</p>
-            <p className="text-white font-semibold">Saturday</p>
-            <p className="text-green-400 text-sm mt-1">+45% above average</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5">
-            <p className="text-white/60 text-sm mb-2">Top Category</p>
-            <p className="text-white font-semibold">Mobiles</p>
-            <p className="text-green-400 text-sm mt-1">35% of total sales</p>
-          </div>
-          <div className="p-4 rounded-xl bg-white/5">
-            <p className="text-white/60 text-sm mb-2">Avg. Response Time</p>
-            <p className="text-white font-semibold">2.5 hours</p>
-            <p className="text-green-400 text-sm mt-1">Better than 80% sellers</p>
-          </div>
+          <p className="text-3xl font-bold text-white">{data.totalViews.toLocaleString()}</p>
         </div>
-      </motion.div>
+        
+        <div className="bg-[#151b2b] border border-gray-800 p-6 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-400 font-medium text-sm">Total Leads</h3>
+            <div className="p-2 bg-green-500/10 rounded-lg"><Users className="w-5 h-5 text-green-500" /></div>
+          </div>
+          <p className="text-3xl font-bold text-white">{data.totalLeads.toLocaleString()}</p>
+        </div>
+
+        <div className="bg-[#151b2b] border border-gray-800 p-6 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-400 font-medium text-sm">Conversion Rate</h3>
+            <div className="p-2 bg-purple-500/10 rounded-lg"><Target className="w-5 h-5 text-purple-500" /></div>
+          </div>
+          <p className="text-3xl font-bold text-white">{data.conversionRate}%</p>
+        </div>
+
+        <div className="bg-[#151b2b] border border-gray-800 p-6 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-400 font-medium text-sm">Total Revenue</h3>
+            <div className="p-2 bg-pink-500/10 rounded-lg"><DollarSign className="w-5 h-5 text-pink-500" /></div>
+          </div>
+          <p className="text-3xl font-bold text-pink-500">₹{data.totalRevenue.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* TOP PERFORMING ADS */}
+      <div className="bg-[#151b2b] border border-gray-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-gray-800">
+          <h2 className="text-xl font-bold text-white">Top Performing Ads</h2>
+        </div>
+        <div className="p-6">
+          {data.topAds.length > 0 ? (
+            <div className="space-y-6">
+              {data.topAds.map((ad, idx) => {
+                // Calculate progress bar width based on highest views
+                const maxViews = data.topAds[0].views || 1; 
+                const percentage = Math.max((ad.views / maxViews) * 100, 5);
+
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-white font-medium truncate pr-4">{ad.name}</span>
+                      <span className="text-gray-400 whitespace-nowrap">{ad.views} Views</span>
+                    </div>
+                    <div className="w-full bg-[#0a0f1c] rounded-full h-2">
+                      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">Not enough data to display top ads yet.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

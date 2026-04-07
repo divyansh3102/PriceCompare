@@ -15,10 +15,12 @@ const SellerSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // ✅ I added the Orders path right here in the menuItems!
   const menuItems = [
     { path: '/seller/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/seller/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/seller/my-ads', icon: Package, label: 'My Ads' },
+    { path: '/seller/orders', icon: ShoppingBag, label: 'Orders' },
     { path: '/seller/profile', icon: User, label: 'Profile' },
   ];
 
