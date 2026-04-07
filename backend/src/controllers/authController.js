@@ -6,6 +6,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// ✅ FIX: Crash the app early if JWT_SECRET is missing (Prevents login/register crashes later)
+if (!process.env.JWT_SECRET) {
+  console.error("CRITICAL ERROR: JWT_SECRET is not defined in .env file!");
+  process.exit(1); 
+}
+
 // Generate 6-digit OTP
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -20,6 +26,12 @@ const generateToken = (userId, role) => {
   );
 };
 
+// ✅ FIX: Helper function for email validation
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 // ──────────────────────────────────────────────
 // Register new user
 // ──────────────────────────────────────────────
@@ -27,11 +39,27 @@ export const register = async (req, res) => {
   try {
     const { name, email, password, role, shopName } = req.body;
 
-    // Validation
+    // ✅ FIX: Basic validation for missing fields
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide all required fields'
+      });
+    }
+
+    // ✅ FIX: Email format validation
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // ✅ FIX: Password strength validation
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
       });
     }
 
@@ -71,8 +99,15 @@ export const register = async (req, res) => {
     // Send OTP email
     const emailResult = await sendOTP(email, otpCode, name);
 
+    // ✅ FIX: If email fails to send during registration, let the user know
     if (!emailResult.success) {
       console.warn('Failed to send OTP email:', emailResult.error);
+      return res.status(500).json({
+        success: false,
+        message: 'Account created, but failed to send OTP email. Please try resending OTP.',
+        userId,
+        email: email.toLowerCase()
+      });
     }
 
     res.status(201).json({
@@ -80,15 +115,16 @@ export const register = async (req, res) => {
       message: 'Registration successful. Please verify your email.',
       userId,
       email: email.toLowerCase(),
-      otpSent: emailResult.success
+      otpSent: true
     });
 
   } catch (error) {
     console.error('Registration error:', error);
+    // ✅ FIX: Hide detailed error messages in production
     res.status(500).json({
       success: false,
       message: 'Registration failed. Please try again.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -99,6 +135,10 @@ export const register = async (req, res) => {
 export const verifyOTP = async (req, res) => {
   try {
     const { userId, otp } = req.body;
+
+    if (!userId || !otp) {
+      return res.status(400).json({ success: false, message: "User ID and OTP are required" });
+    }
 
     // Find user
     const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
@@ -115,7 +155,7 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    // ✅ Get OTP from otps table (IMPORTANT FIX)
+    // Get OTP from otps table
     const otpRecord = db.prepare(
       "SELECT * FROM otps WHERE user_id = ? AND otp = ?"
     ).get(userId, otp);
@@ -132,14 +172,14 @@ export const verifyOTP = async (req, res) => {
       db.prepare("DELETE FROM otps WHERE id = ?").run(otpRecord.id);
       return res.status(400).json({
         success: false,
-        message: "OTP expired"
+        message: "OTP expired. Please request a new one."
       });
     }
 
-    // ✅ Verify user
+    // Verify user
     db.prepare("UPDATE users SET is_verified = 1 WHERE id = ?").run(userId);
 
-    // ✅ Delete OTP after use
+    // Delete OTP after use
     db.prepare("DELETE FROM otps WHERE id = ?").run(otpRecord.id);
 
     return res.json({
@@ -148,10 +188,11 @@ export const verifyOTP = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('OTP Verification Error:', error);
     return res.status(500).json({
       success: false,
-      message: "OTP verification failed"
+      message: "OTP verification failed",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -202,10 +243,18 @@ export const resendOTP = async (req, res) => {
     // Send OTP email
     const emailResult = await sendOTP(email, otpCode, user.name);
 
+    // ✅ FIX: Throw actual 500 error if email fails to send, so frontend knows it failed
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP email. Please try again later.'
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'OTP resent successfully',
-      otpSent: emailResult.success
+      otpSent: true
     });
 
   } catch (error) {
@@ -213,7 +262,7 @@ export const resendOTP = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to resend OTP. Please try again.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -282,7 +331,7 @@ export const login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Login failed. Please try again.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -313,13 +362,13 @@ export const getCurrentUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get user information',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
 // ──────────────────────────────────────────────
-// Logout (stateless — client drops the token)
+// Logout (stateless)
 // ──────────────────────────────────────────────
 export const logout = async (req, res) => {
   res.status(200).json({
