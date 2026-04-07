@@ -55,40 +55,40 @@ const Register = () => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
-    setError('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const userData = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: role,
-        ...(role === 'seller' && { shopName: formData.shopName })
-      };
+  if (!validateForm()) return;
 
-      const response = await authApi.register(userData);
-      
-      if (response.success) {
-        // Store user ID for OTP verification
-        localStorage.setItem('verifyUserId', response.userId);
-        localStorage.setItem('verifyEmail', formData.email);
-        
-        // Navigate to OTP verification
-        navigate('/verify-otp');
-      }
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  setError('');
+
+  try {
+    // ✅ FIXED DATA (ONLY REQUIRED FIELDS)
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password
+    };
+
+    const response = await authApi.register(userData);
+
+    if (response.success) {
+      alert("Registration successful ✅");
+
+      // 👉 redirect to login
+      navigate('/login');
     }
-  };
+
+  } catch (err) {
+    console.error(err);
+    const errorMessage =
+      err.response?.data?.message || "Registration failed ❌";
+    setError(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
