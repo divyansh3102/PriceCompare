@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://pricecompare-1-lrr8.onrender.com/api';
+// ✅ Use env if available, else fallback to Render URL
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://pricecompare-1-lrr8.onrender.com/api';
 
 // Create axios instance
 const api = axios.create({
@@ -30,14 +33,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      // Handle specific error statuses
       if (error.response.status === 401) {
-        // Token expired or invalid
         localStorage.removeItem('token');
         localStorage.removeItem('role');
         localStorage.removeItem('userId');
-        
-        // Only redirect if not already on auth pages
+
         const currentPath = window.location.pathname;
         if (!['/login', '/register', '/verify-otp'].includes(currentPath)) {
           window.location.href = '/login';
@@ -46,6 +46,6 @@ api.interceptors.response.use(
     }
     return Promise.reject(error);
   }
-); 
+);
 
 export default api;
