@@ -100,79 +100,58 @@ export const verifyOTP = async (req, res) => {
   try {
     const { userId, otp } = req.body;
 
-    if (!userId || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide user ID and OTP'
-      });
-    }
-
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
+      return res.status(400).json({ success: false, message: "User not found" });
+    }
+
+    // If already verified
+    if (user.is_verified === 1) {
+      return res.json({
+        success: true,
+        message: "User already verified"
       });
     }
 
-    // Check if already verified
-    if (user.is_verified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already verified'
-      });
-    }
-
-    // Find matching OTP record
+    // ✅ Get OTP from otps table (IMPORTANT FIX)
     const otpRecord = db.prepare(
-      'SELECT * FROM otps WHERE user_id = ? AND otp = ?'
+      "SELECT * FROM otps WHERE user_id = ? AND otp = ?"
     ).get(userId, otp);
 
     if (!otpRecord) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid OTP'
+        message: "Invalid OTP"
       });
     }
 
     // Check expiry
     if (new Date(otpRecord.expires_at) < new Date()) {
-      db.prepare('DELETE FROM otps WHERE id = ?').run(otpRecord.id);
+      db.prepare("DELETE FROM otps WHERE id = ?").run(otpRecord.id);
       return res.status(400).json({
         success: false,
-        message: 'OTP has expired. Please request a new one.'
+        message: "OTP expired"
       });
     }
 
-    // Mark user as verified
-    db.prepare('UPDATE users SET is_verified = 1, updated_at = datetime(\'now\') WHERE id = ?').run(userId);
+    // ✅ Verify user
+    db.prepare("UPDATE users SET is_verified = 1 WHERE id = ?").run(userId);
 
-    // Delete used OTP
-    db.prepare('DELETE FROM otps WHERE id = ?').run(otpRecord.id);
+    // ✅ Delete OTP after use
+    db.prepare("DELETE FROM otps WHERE id = ?").run(otpRecord.id);
 
-    // Generate JWT token
-    const token = generateToken(user.id, user.role);
-
-    res.status(200).json({
+    return res.json({
       success: true,
-      message: 'Email verified successfully',
-      token,
-      role: user.role,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      message: "OTP verified successfully"
     });
 
   } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(500).json({
+    console.error(error);
+    return res.status(500).json({
       success: false,
-      message: 'Verification failed. Please try again.',
-      error: error.message
+      message: "OTP verification failed"
     });
   }
 };
