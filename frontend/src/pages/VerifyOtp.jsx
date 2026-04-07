@@ -107,7 +107,7 @@ const VerifyOtp = () => {
 
     try {
       const response = await authApi.verifyOTP({
-        userId,
+        userId: Number(userId),
         otp: otpString
       });
 
