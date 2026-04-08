@@ -134,20 +134,30 @@ export const register = async (req, res) => {
 // ──────────────────────────────────────────────
 export const verifyOTP = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
+    let { userId, otp } = req.body;
+
+    // ✅ FIX: ensure correct types
+    userId = Number(userId);
+    otp = String(otp);
 
     if (!userId || !otp) {
-      return res.status(400).json({ success: false, message: "User ID and OTP are required" });
+      return res.status(400).json({
+        success: false,
+        message: "User ID and OTP are required"
+      });
     }
 
     // Find user
     const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
 
     if (!user) {
-      return res.status(400).json({ success: false, message: "User not found" });
+      return res.status(400).json({
+        success: false,
+        message: "User not found"
+      });
     }
 
-    // If already verified
+    // Already verified
     if (user.is_verified === 1) {
       return res.json({
         success: true,
@@ -155,7 +165,7 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    // Get OTP from otps table
+    // ✅ FIX: OTP fetch + strict compare
     const otpRecord = db.prepare(
       "SELECT * FROM otps WHERE user_id = ? AND otp = ?"
     ).get(userId, otp);
@@ -179,7 +189,7 @@ export const verifyOTP = async (req, res) => {
     // Verify user
     db.prepare("UPDATE users SET is_verified = 1 WHERE id = ?").run(userId);
 
-    // Delete OTP after use
+    // Delete OTP
     db.prepare("DELETE FROM otps WHERE id = ?").run(otpRecord.id);
 
     return res.json({
@@ -188,11 +198,10 @@ export const verifyOTP = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('OTP Verification Error:', error);
+    console.error("OTP Verification Error:", error);
     return res.status(500).json({
       success: false,
-      message: "OTP verification failed",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "OTP verification failed"
     });
   }
 };
